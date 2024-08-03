@@ -168,7 +168,7 @@ if __name__ == "__main__":
     dir_yaml = os.path.splitext("model_config_RawNet2")[0] + ".yaml"
 
     with open(dir_yaml, "r") as f_yaml:
-        parser1 = yaml.load(f_yaml)
+        parser1 = yaml.safe_load(f_yaml)
 
     np.random.seed(parser1["seed"])
     torch.backends.cudnn.deterministic = True
