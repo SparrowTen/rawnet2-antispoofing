@@ -5,18 +5,14 @@ import matplotlib.pyplot as plt
 
 args = sys.argv
 
-if 'dev'==args[1]:
-    
-    ASV_SCOREFILE = '/tDCF_python/ASV_scores/ASVspoof2019.LA.asv.dev.gi.trl.scores.txt''
+if 'dev' == args[1]:
+    ASV_SCOREFILE = './tDCF_python/ASV_scores/ASVspoof2019.LA.asv.dev.gi.trl.scores.txt'
     CM_SCOREFILE = args[2]
-    
-     
-elif 'Eval'==args[1]:
-    ASV_SCOREFILE = '/tDCF_python/ASV_scores/ASVspoof2019.LA.asv.eval.gi.trl.scores.txt''
+elif 'Eval' == args[1]:
+    ASV_SCOREFILE = './tDCF_python/ASV_scores/ASVspoof2019.LA.asv.eval.gi.trl.scores.txt'
     CM_SCOREFILE = args[2]
-     
 
-
+plt_save_path = args[3]
 
 # Replace CM scores with your own scores or provide score file as the first argument.
 cm_scores_file =  CM_SCOREFILE
@@ -90,7 +86,6 @@ print('   min-tDCF       = {:8.9f}'.format(min_tDCF))
 
 # Visualize ASV scores and CM scores
 plt.figure()
-ax = plt.subplot(121)
 plt.hist(tar_asv, histtype='step', density=True, bins=50, label='Target')
 plt.hist(non_asv, histtype='step', density=True, bins=50, label='Nontarget')
 plt.hist(spoof_asv, histtype='step', density=True, bins=50, label='Spoof')
@@ -100,13 +95,17 @@ plt.xlabel('ASV score')
 plt.ylabel('Density')
 plt.title('ASV score histogram')
 
-ax = plt.subplot(122)
+plt.savefig(f'{plt_save_path}/ASV_score_hist.png')
+
+plt.figure()
 plt.hist(bona_cm, histtype='step', density=True, bins=50, label='Bona fide')
 plt.hist(spoof_cm, histtype='step', density=True, bins=50, label='Spoof')
 plt.legend()
 plt.xlabel('CM score')
 #plt.ylabel('Density')
 plt.title('CM score histogram')
+
+plt.savefig(f'{plt_save_path}/CM_score_hist.png')
 
 
 # Plot t-DCF as function of the CM threshold.
@@ -120,5 +119,7 @@ plt.plot([np.min(CM_thresholds), np.max(CM_thresholds)], [1, 1], '--', color='bl
 plt.legend(('t-DCF', 'min t-DCF ({:.9f})'.format(min_tDCF), 'Arbitrarily bad CM (Norm t-DCF=1)'))
 plt.xlim([np.min(CM_thresholds), np.max(CM_thresholds)])
 plt.ylim([0, 1.5])
+
+plt.savefig(f'{plt_save_path}/tDCF.png')
 
 plt.show()
