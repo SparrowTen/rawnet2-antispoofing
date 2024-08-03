@@ -68,39 +68,30 @@ def produce_evaluation_file(dataset, model, device, save_path):
     num_total = 0.0
     model.eval()
     true_y = []
-    fname_list = []
-    key_list = []
-    sys_id_list = []
-    key_list = []
-    score_list = []
-    for batch_x, batch_y, batch_meta in data_loader:
-        if batch_x is None or batch_y is None or batch_meta is None:
-            raise ValueError("DataLoader returned None for one of the batches.")
-        batch_size = batch_x.size(0)
-        num_total += batch_size
-        batch_x = batch_x.to(device)
-        batch_y = batch_y.view(-1).type(torch.int64).to(device)
-        batch_out = model(batch_x, batch_y, is_test=True)
-        if batch_out is None:
-            raise ValueError("Model returned None for batch_out.")
-        batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
-
-        # add outputs
-        fname_list.extend(list(batch_meta[1]))
-        key_list.extend(
-            ["bonafide" if key == 1 else "spoof" for key in list(batch_meta[4])]
-        )
-        sys_id_list.extend(
-            [dataset.sysid_dict_inv[s.item()] for s in list(batch_meta[3])]
-        )
-        score_list.extend(batch_score.tolist())
-
     with open(save_path, "w") as fh:
-        for f, s, k, cm in zip(fname_list, sys_id_list, key_list, score_list):
+        for batch_x, batch_y, batch_meta in data_loader:
+            if batch_x is None or batch_y is None or batch_meta is None:
+                raise ValueError("DataLoader returned None for one of the batches.")
+            batch_size = batch_x.size(0)
+            num_total += batch_size
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.view(-1).type(torch.int64).to(device)
+            batch_out = model(batch_x, batch_y, is_test=True)
+            if batch_out is None:
+                raise ValueError("Model returned None for batch_out.")
+            batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
+            
             if dataset.is_eval:
-                fh.write("{} {} {} {}\n".format(f, s, k, cm))
-            else:
-                fh.write("{} {}\n".format(f, cm))
+                for f, s, k, cm in zip(
+                    list(batch_meta[1]),
+                    list(batch_meta[3]),
+                    list(batch_meta[4]),
+                    batch_score,
+                ):
+                    if dataset.is_eval:
+                        fh.write("{} {} {} {}\n".format(f, s, k, cm))
+                    else:
+                        fh.write("{} {}\n".format(f, cm))
     print("Result saved to {}".format(save_path))
 
 
