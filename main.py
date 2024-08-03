@@ -28,6 +28,9 @@ def pad(x, max_len=64600):
 
     return padded_x
 
+def to_tensor(x):
+    return Tensor(x)
+
 
 def init_weights(m):
     # print(m)
@@ -60,7 +63,7 @@ def evaluate_accuracy(data_loader, model, device):
 
 
 def produce_evaluation_file(dataset, model, device, save_path):
-    data_loader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
+    data_loader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=4)
     num_correct = 0.0
     num_total = 0.0
     model.eval()
@@ -71,11 +74,15 @@ def produce_evaluation_file(dataset, model, device, save_path):
     key_list = []
     score_list = []
     for batch_x, batch_y, batch_meta in data_loader:
+        if batch_x is None or batch_y is None or batch_meta is None:
+            raise ValueError("DataLoader returned None for one of the batches.")
         batch_size = batch_x.size(0)
         num_total += batch_size
         batch_x = batch_x.to(device)
         batch_y = batch_y.view(-1).type(torch.int64).to(device)
         batch_out = model(batch_x, batch_y, is_test=True)
+        if batch_out is None:
+            raise ValueError("Model returned None for batch_out.")
         batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
 
         # add outputs
@@ -193,23 +200,14 @@ if __name__ == "__main__":
     if not os.path.exists(model_save_path):
         os.mkdir(model_save_path)
 
-    transforms = transforms.Compose([lambda x: pad(x), lambda x: Tensor(x)])
+    transforms = transforms.Compose([
+        pad,
+        to_tensor
+    ])
 
     # GPU device
     device = "cuda" if torch.cuda.is_available() else "cpu"  # cuda-0
-
-    # Dataloader
-    dev_set = data_utils_LA.ASVDataset(
-        database_path=args.database_path,
-        protocols_path=args.protocols_path,
-        is_train=False,
-        is_logical=is_logical,
-        transform=transforms,
-        feature_name=args.features,
-        is_eval=args.is_eval,
-        eval_part=args.eval_part,
-    )
-    dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=True)
+    print("Device: ", device)
 
     # torch.backends.cudnn.enabled = False
 
@@ -232,9 +230,32 @@ if __name__ == "__main__":
         print("Model loaded : {}".format(args.model_path))
 
     if args.eval:
-
-        produce_evaluation_file(dev_set, model, device, args.eval_output)
+        # Dataloader
+        eval_set = data_utils_LA.ASVDataset(
+            database_path=args.database_path,
+            protocols_path=args.protocols_path,
+            is_train=False,
+            is_logical=is_logical,
+            transform=transforms,
+            feature_name=args.features,
+            is_eval=args.is_eval,
+            eval_part=args.eval_part,
+        )
+        produce_evaluation_file(eval_set, model, device, args.eval_output)
         sys.exit(0)
+    
+    # Dataloader 
+    dev_set = data_utils_LA.ASVDataset(
+        database_path=args.database_path,
+        protocols_path=args.protocols_path,
+        is_train=False,
+        is_logical=is_logical,
+        transform=transforms,
+        feature_name=args.features,
+        is_eval=args.is_eval,
+        eval_part=args.eval_part,
+    )
+    dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=True)
 
     # Dataloader
     train_set = data_utils_LA.ASVDataset(
