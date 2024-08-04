@@ -84,9 +84,9 @@ def produce_evaluation_file(dataset, model, device, save_path):
             if dataset.is_eval:
                 for f, s, k, cm in zip(
                     list(batch_meta[1]),
-                    list(batch_meta[3]),
-                    list(batch_meta[4]),
-                    batch_score,
+                    [dataset.sysid_dict_inv[s.item()] for s in list(batch_meta[3])],
+                    ["bonafide" if key == 1 else "spoof" for key in list(batch_meta[4])],
+                    batch_score.tolist()
                 ):
                     if dataset.is_eval:
                         fh.write("{} {} {} {}\n".format(f, s, k, cm))
